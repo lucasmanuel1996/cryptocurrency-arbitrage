@@ -82,42 +82,48 @@ async function computePrices(data) {
                     if (Object.keys(data[coin]).length > 1) {
                         if (coinNames.includes(coin) == false) coinNames.push(coin);
                         let arr = [];
+                        let volume;
                         for (let market in data[coin]) {
                             arr.push([data[coin][market], market]);
+                            arr.push([data[coin][volume], volume]);
                         }
+
                         arr.sort(function (a, b) {
                             return a[0] - b[0];
                         });
                         for (let i = 0; i < arr.length; i++) {
                             for (let j = i + 1; j < arr.length; j++) {
-                                results.push(
-                                    {
-                                        coin: coin,
-                                        spread: arr[i][0] / arr[j][0],
-                                        market2: {
-                                            name: arr[i][1],
-                                            last: arr[i][0]
+                                if (Math.abs(1 - arr[i][0] / arr[j][0]) > 0.10){
+                                    results.push(
+                                        {
+                                            coin: coin,
+                                            spreadPercent: arr[i][0] / arr[j][0] *100,
+                                            market2: {
+                                                name: arr[i][1],
+                                                last: arr[i][0]
+                                            },
+                                            market1: {
+                                                name: arr[j][1],
+                                                last: arr[j][0]
+                                            }
+    
                                         },
-                                        market1: {
-                                            name: arr[j][1],
-                                            last: arr[j][0]
+                                        {//TODO, shouldnt have to create duplicate object for same markets
+                                            coin: coin,
+                                            spreadPercent: arr[j][0] / arr[i][0] * 100,
+                                            market2: {
+                                                name: arr[j][1],
+                                                last: arr[j][0]
+                                            },
+                                            market1: {
+                                                name: arr[i][1],
+                                                last: arr[i][0]
+                                            }
+    
                                         }
-
-                                    },
-                                    {//TODO, shouldnt have to create duplicate object for same markets
-                                        coin: coin,
-                                        spread: arr[j][0] / arr[i][0],
-                                        market2: {
-                                            name: arr[j][1],
-                                            last: arr[j][0]
-                                        },
-                                        market1: {
-                                            name: arr[i][1],
-                                            last: arr[i][0]
-                                        }
-
-                                    }
-                                );
+                                    )
+                                }
+                                ;
                                 
                                 // db.insert({
                                 //     coin: coin,
@@ -149,7 +155,7 @@ async function computePrices(data) {
     await loopData();
 
     console.log("Emitting Results...")
-
+    console.log(results)
     io.emit('results', results);
 }
 
